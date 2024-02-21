@@ -78,6 +78,7 @@ export type Props<T> = {|
   style?: Object,
   useIsScrolling: boolean,
   width: number | string,
+  draggingId?: number | string,
 |};
 
 type State = {|
@@ -325,6 +326,7 @@ export default function createListComponent({
         style,
         useIsScrolling,
         width,
+        draggingId,
       } = this.props;
       const { isScrolling } = this.state;
 
@@ -338,19 +340,42 @@ export default function createListComponent({
 
       const [startIndex, stopIndex] = this._getRangeToRender();
 
+      let draggingIndex = -1;
+      if (draggingId) {
+        draggingIndex = itemData.findIndex(v => v === draggingId);
+      }
+      let isInRange = false;
       const items = [];
       if (itemCount > 0) {
         for (let index = startIndex; index <= stopIndex; index++) {
+          const key = itemKey(index, itemData);
           items.push(
             createElement(children, {
               data: itemData,
-              key: itemKey(index, itemData),
+              key,
               index,
               isScrolling: useIsScrolling ? isScrolling : undefined,
               style: this._getItemStyle(index),
             })
           );
+          if (!isInRange && draggingId && draggingId === key) {
+            isInRange = true;
+          }
         }
+      }
+
+      if (draggingId && draggingIndex > -1 && !isInRange) {
+        items.splice(
+          draggingIndex,
+          0,
+          createElement(children, {
+            data: itemData,
+            key: draggingId,
+            index: draggingIndex,
+            isScrolling: useIsScrolling ? isScrolling : undefined,
+            style: this._getItemStyle(draggingIndex),
+          })
+        );
       }
 
       // Read this value AFTER items have been created,
